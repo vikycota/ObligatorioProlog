@@ -1,13 +1,13 @@
-Nombre,Origen ,Destino
-CA1H,A1,A2
-CA2H,A2,A3
-CB1H,B2,B1
-CB2H,B3,B2
-CC1H,C1,C2
-CC2H,C2,C3
-CA1V,A1,B1
-CB1V,B1,C1
-CA2V,B2,A2
-CB2V,C2,B2
-CA3V,A3,B3
-CB3V,B3,C3
+Nombre,Origen,Destino,Peso
+ca1h,a1,a2,1
+ca2h,a2,a3,2
+cb1h,b2,b1,3
+cb2h,b3,b2,4
+cc1h,c1,c2,5
+cc2h,c2,c3,1
+ca1v,a1,b1,2
+cb1v,b1,c1,3
+ca2v,b2,a2,4
+cb2v,c2,b2,5
+ca3v,a3,b3,1
+cb3v,b3,c3,2
