@@ -7,10 +7,7 @@
 
 calcular_ruta_con_long(X,Y,Ruta,Total):-
     encontrar_todas_rutas(X,Y,Ruta),
-    suma_long(Ruta,0,Total),
-    write(Ruta),
-    write(" Peso: "),
-    write(Total).
+    suma_long(Ruta,0,Total).
     
 suma_long([_],Suma,Total):-Total=Suma.
 
