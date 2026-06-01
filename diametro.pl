@@ -12,5 +12,3 @@ diametro(W,J,Long):-findall((MayorPeso,X,Z),(combos_manzanas(X,Z),ruta_mas_short
     sort(Combos, Ayudante),
     reverse(Ayudante,[(Long,W,J)|_]).
     
-    
-
