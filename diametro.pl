@@ -1,6 +1,6 @@
 :- module(diametro, [combos_manzanas/2,diametro/3]).
 :- use_module('datos.pl').
-:-use_module('ruta_mas_larga.pl').
+:-use_module('ruta_mas_short.pl').
 
 
 

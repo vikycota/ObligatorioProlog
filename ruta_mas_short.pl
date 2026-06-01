@@ -1,6 +1,6 @@
 %Calcular mas eficiente inicio
 
-:- module(ruta_mas_larga, [calcular_ruta_con_long/4,suma_long/3,ruta_mas_short/4]).
+:- module(ruta_mas_short, [calcular_ruta_con_long/4,suma_long/3,ruta_mas_short/4]).
 
 :- use_module('datos.pl').
 :- use_module('rutas_posibles.pl').

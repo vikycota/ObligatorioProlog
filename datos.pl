@@ -9,7 +9,7 @@
 
 cargar_manzanas:-
                 retractall(manzana(_, _, _)), % borra todos los que quedaron cargados por si acaso
-                csv_read_file('Manzanas_7X7.csv', [_Encabezado | Filas], [functor(manzana), arity(3)]),% esto toma las manzanas y [_Encabezado | Filas] las separa en el encabezado (titulos ) y las filas importantes y lo convierte en una funcion manzana con aridad 3  [functor(manzana), arity(3)]
+                csv_read_file('Manzanas_6X6.csv', [_Encabezado | Filas], [functor(manzana), arity(3)]),% esto toma las manzanas y [_Encabezado | Filas] las separa en el encabezado (titulos ) y las filas importantes y lo convierte en una funcion manzana con aridad 3  [functor(manzana), arity(3)]
                 cargar_filas(Filas).% llama a la recursión solo con las filas importantes
                 
 cargar_filas([]).% base recursion
@@ -20,5 +20,5 @@ cargar_filas([Fila | Resto]) :-% carga las filas una a una con recursión
 
 cargar_calles:-
                 retractall(calle(_, _, _,_)), % borra todos los que quedaron cargados por si acaso
-                csv_read_file('Calles_7X7.csv', [_Encabezado | Filas], [functor(calle), arity(4)]),% esto toma las manzanas y [_Encabezado | Filas] las separa en el encabezado (titulos ) y las filas importantes y lo convierte en una funcion manzana con aridad 3  [functor(manzana), arity(3)]
+                csv_read_file('Calles_6X6.csv', [_Encabezado | Filas], [functor(calle), arity(4)]),% esto toma las manzanas y [_Encabezado | Filas] las separa en el encabezado (titulos ) y las filas importantes y lo convierte en una funcion manzana con aridad 3  [functor(manzana), arity(3)]
                 cargar_filas(Filas).% llama a la recursión solo con las filas importantes
