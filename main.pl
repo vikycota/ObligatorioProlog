@@ -4,6 +4,8 @@
 :- use_module('ruta_mas_corta.pl').
 :- use_module('rutas_posibles.pl').
 :- use_module('datos.pl').
+:- use_module('diametro.pl').
+:- use_module('ruta_mas_larga.pl').
 
 inicializar :-
     cargar_manzanas,
