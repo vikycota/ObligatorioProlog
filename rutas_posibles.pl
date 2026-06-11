@@ -1,6 +1,4 @@
-% encontrar las rutas para llegar de un lado a otro, similar a depth first search
-% test
-
+% encontrar las rutas para llegar de un lado a otro, similar a depth first search 
 
 :- module(rutas_posibles, [ruta/3, dfs/4, encontrar_todas_rutas/3]).
 

@@ -5,7 +5,9 @@
 :- use_module('rutas_posibles.pl').
 :- use_module('datos.pl').
 :- use_module('diametro.pl').
-:- use_module('ruta_mas_larga.pl').
+:- use_module('ruta_mas_short.pl').
+:- use_module('Dijkstra.pl').
+
 
 inicializar :-
     set_prolog_flag(answer_write_options, [max_depth(0)]),
