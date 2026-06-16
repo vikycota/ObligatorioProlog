@@ -7,9 +7,13 @@
 :- use_module('diametro.pl').
 :- use_module('ruta_mas_short.pl').
 :- use_module('Dijkstra.pl').
+:- consult('interfaz.pl').
 
 
 inicializar :-
     set_prolog_flag(answer_write_options, [max_depth(0)]),
     cargar_manzanas,
     cargar_calles.
+
+inicializar_interfaz :-
+    iniciar_interfaz.

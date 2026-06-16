@@ -1,4 +1,4 @@
-:- module(Dijkstra, [dijkstra/4]).
+:- module(dijkstra, [dijkstra/4]).
 :- use_module('datos.pl').
 
 
