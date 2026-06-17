@@ -7,6 +7,7 @@
 :- use_module('rutas_posibles.pl').
 :- use_module('conectividad.pl').
 :- use_module('diametro.pl').
+:- use_module('ford_fulkerson.pl').
 
 
 % Ventana principal
