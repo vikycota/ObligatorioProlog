@@ -43,6 +43,15 @@ iniciar_interfaz :-
                         Resultado))),
 
     send(Dialogo, append,
+         button('Flujo maximo',
+                message(@prolog, accion_flujo_maximo,
+                        NodosItem?selection,
+                        AristasItem?selection,
+                        OrigenItem?selection,
+                        DestinoItem?selection,
+                        Resultado))),
+
+    send(Dialogo, append,
          button('Conectividad',
                 message(@prolog, accion_conectividad,
                         NodosItem?selection,
@@ -119,6 +128,21 @@ accion_ruta_mas_corta(NodosTexto, AristasTexto, OrigenTexto, DestinoTexto, Resul
             actualizar_resultado(Resultado, Mensaje),
             send(@display, inform, Mensaje)
         ;   informar_error(Resultado, 'No existe ruta entre el origen y el destino.')
+        )
+    ;   informar_error(Resultado, 'Error: revise el formato de entrada.')
+    ).
+
+accion_flujo_maximo(NodosTexto, AristasTexto, OrigenTexto, DestinoTexto, Resultado) :-
+    (   preparar_grafo(NodosTexto, AristasTexto, _Nodos, _Aristas),
+        leer_termino(OrigenTexto, Origen),
+        leer_termino(DestinoTexto, Destino)
+    ->  (   flujo_maximo(Origen, Destino, FlujoMaximo)
+        ->  format(atom(Mensaje),
+            'Resultado: flujo maximo de ~w a ~w = ~w',
+            [Origen, Destino, FlujoMaximo]),
+            actualizar_resultado(Resultado, Mensaje),
+            send(@display, inform, Mensaje)
+        ;   informar_error(Resultado, 'No se pudo calcular flujo maximo entre origen y destino.')
         )
     ;   informar_error(Resultado, 'Error: revise el formato de entrada.')
     ).
