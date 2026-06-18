@@ -7,7 +7,6 @@
 :- use_module('conectividad.pl').
 :- use_module('rutas_posibles.pl').
 :- use_module('diametro.pl').
-:- use_module('ford_fulkerson.pl').
 
 :- dynamic mapa_actual/1.
 :- dynamic limites_actuales/4.
@@ -18,9 +17,8 @@
 % ============================================================
 
 mapa_dirigido :-
-    mapa_actual(mapa_6_dirigido).
-mapa_dirigido :-
-    mapa_actual(mapa_26_dirigido).
+    mapa_actual(IdMapa),
+    memberchk(IdMapa, [mapa_6_dirigido, mapa_26_dirigido]).
 
 paleta_colores([
     colour(red),
@@ -84,7 +82,7 @@ iniciar_interfaz :-
          label(titulo, 'GPS Visual sobre Manzanas y Calles')),
 
     send(Dialogo, append,
-         label(info, 'Seleccione mapa, origen y destino. Ejemplo: a1, c3, f6.'),
+         label(info, 'Seleccione mapa, origen y destino. Ejemplo: a1, c3, d4.'),
          below),
 
     send(Dialogo, append, new(MapaItem, menu(mapa, cycle)), below),
@@ -121,15 +119,6 @@ iniciar_interfaz :-
                         Resultado)),
          right),
 
-    send(Dialogo, append,
-         button('Ford-Fulkerson',
-                message(@prolog,
-                        accion_ford_fulkerson,
-                        OrigenItem?selection,
-                        DestinoItem?selection,
-                        Mapa,
-                        Resultado)),
-         right),
 
     send(Dialogo, append,
          button('Conectividad',
@@ -214,6 +203,37 @@ mapa_grande :-
     mapa_actual(mapa_26_dirigido).
 
 
+% En mapas dirigidos se dibujan todas las calles.
+% En mapas no dirigidos, como el CSV tiene la calle en ambos sentidos,
+% se dibuja solo una de las dos para que no aparezcan líneas duplicadas.
+calle_para_dibujar(Origen, Destino, Peso) :-
+    datos:calle(_, Origen, Destino, Peso),
+    (
+        mapa_dirigido
+    ->
+        true
+    ;
+        Origen @=< Destino
+    ).
+
+
+% En mapas dirigidos, una arista pertenece a la ruta solo si coincide
+% con el sentido de la ruta. En mapas no dirigidos, alcanza con que
+% aparezca en cualquiera de los dos sentidos.
+arista_resaltada(Origen, Destino, Ruta) :-
+    (
+        mapa_dirigido
+    ->
+        arista_en_ruta(Origen, Destino, Ruta)
+    ;
+        (
+            arista_en_ruta(Origen, Destino, Ruta)
+        ;
+            arista_en_ruta(Destino, Origen, Ruta)
+        )
+    ).
+
+
 % ============================================================
 % CARGA DE CSV
 % ============================================================
@@ -257,7 +277,7 @@ accion_cargar_mapa(MapaSeleccionado, Mapa, Resultado) :-
         IdMapa = mapa_26_dirigido
     ->
         agregar_resultado(Resultado, 'En este mapa grande use solo:'),
-        agregar_resultado(Resultado, 'Dijkstra, Ford-Fulkerson y Conectividad.')
+        agregar_resultado(Resultado, 'Dijkstra y Conectividad.')
     ;
         agregar_resultado(Resultado, 'En este mapa funcionan todas las operaciones.')
     ).
@@ -312,47 +332,12 @@ accion_dijkstra(OrigenTexto, DestinoTexto, Mapa, Resultado) :-
         formato_camino(Ruta, RutaTexto),
         agregar_resultado(Resultado, RutaTexto),
         format(atom(PesoTexto),
-               'Peso total: ~w minutos',
+               'Tiempo total: ~w minutos',
                [Peso]),
         agregar_resultado(Resultado, PesoTexto)
     ;
         dibujar_grafo(Mapa, []),
         agregar_resultado(Resultado, 'No existe ruta entre esos nodos.')
-    ).
-
-
-accion_ford_fulkerson(OrigenTexto, DestinoTexto, Mapa, Resultado) :-
-    leer_nodo(OrigenTexto, Origen),
-    leer_nodo(DestinoTexto, Destino),
-
-    limpiar_resultado(Resultado),
-    agregar_resultado(Resultado, 'Ford-Fulkerson / Edmonds-Karp'),
-    agregar_resultado(Resultado, '------------------------------'),
-
-    (
-        flujo_maximo(Origen, Destino, Flujo, FlujosPorArco)
-    ->
-        format(atom(Mensaje),
-               'Flujo maximo desde ~w hasta ~w = ~w.',
-               [Origen, Destino, Flujo]),
-        agregar_resultado(Resultado, Mensaje),
-
-        (
-            camino_de_flujo(Origen, Destino, FlujosPorArco, Ruta)
-        ->
-            formato_camino(Ruta, RutaTexto),
-            agregar_resultado(Resultado, RutaTexto),
-            dibujar_grafo(Mapa, Ruta)
-        ;
-            dibujar_grafo(Mapa, []),
-            agregar_resultado(Resultado, 'No hay camino con flujo positivo para resaltar.')
-        )
-    ;
-        dibujar_grafo(Mapa, []),
-        format(atom(Mensaje),
-               'No se pudo calcular flujo maximo entre ~w y ~w.',
-               [Origen, Destino]),
-        agregar_resultado(Resultado, Mensaje)
     ).
 
 
@@ -391,7 +376,7 @@ asignar_colores([Ruta-Peso | Resto], Idx, [r(Ruta, Peso, Color) | Resto2]) :-
 dibujar_grafo_multicolor(Mapa, RutasColoreadas) :-
     send(Mapa, clear),
     forall(
-        datos:calle(_, Origen, Destino, Peso),
+        calle_para_dibujar(Origen, Destino, Peso),
         ignore(dibujar_calle_multicolor(Mapa, Origen, Destino, Peso, RutasColoreadas))
     ),
     forall(
@@ -406,10 +391,11 @@ dibujar_calle_multicolor(Mapa, Origen, Destino, Peso, RutasColoreadas) :-
     coord_pantalla(X1, Y1, PX1, PY1),
     coord_pantalla(X2, Y2, PX2, PY2),
 
-    ajustar_endpoint(PX1, PY1, PX2, PY2, PX2F, PY2F),
-    send(Mapa, display, new(Linea, line(PX1, PY1, PX2F, PY2F))),
-
-    (mapa_dirigido ->
+    (
+        mapa_dirigido
+    ->
+        ajustar_endpoint(PX1, PY1, PX2, PY2, PX2F, PY2F),
+        send(Mapa, display, new(Linea, line(PX1, PY1, PX2F, PY2F))),
         tamanio_flecha(Largo, Ala),
         new(Flecha, arrow),
         send(Flecha, length, Largo),
@@ -417,7 +403,7 @@ dibujar_calle_multicolor(Mapa, Origen, Destino, Peso, RutasColoreadas) :-
         send(Flecha, style, closed),
         send(Linea, second_arrow, Flecha)
     ;
-        true
+        send(Mapa, display, new(Linea, line(PX1, PY1, PX2, PY2)))
     ),
 
     (color_arista_multicolor(Origen, Destino, RutasColoreadas, Color) ->
@@ -445,7 +431,7 @@ dibujar_calle_multicolor(Mapa, Origen, Destino, Peso, RutasColoreadas) :-
 
 
 color_arista_multicolor(Origen, Destino, [r(Ruta, _, Color) | _], Color) :-
-    arista_en_ruta(Origen, Destino, Ruta), !.
+    arista_resaltada(Origen, Destino, Ruta), !.
 color_arista_multicolor(Origen, Destino, [_ | Resto], Color) :-
     color_arista_multicolor(Origen, Destino, Resto, Color).
 
@@ -550,7 +536,7 @@ suma_pesos_interfaz([Primero, Segundo | Resto], Suma, Total) :-
 dibujar_grafo(Mapa, RutaResaltada) :-
     send(Mapa, clear),
     forall(
-        datos:calle(_, Origen, Destino, Peso),
+        calle_para_dibujar(Origen, Destino, Peso),
         ignore(dibujar_calle(Mapa, Origen, Destino, Peso, RutaResaltada))
     ),
     forall(
@@ -565,10 +551,11 @@ dibujar_calle(Mapa, Origen, Destino, Peso, RutaResaltada) :-
     coord_pantalla(X1, Y1, PX1, PY1),
     coord_pantalla(X2, Y2, PX2, PY2),
 
-    ajustar_endpoint(PX1, PY1, PX2, PY2, PX2F, PY2F),
-    send(Mapa, display, new(Linea, line(PX1, PY1, PX2F, PY2F))),
-
-    (mapa_dirigido ->
+    (
+        mapa_dirigido
+    ->
+        ajustar_endpoint(PX1, PY1, PX2, PY2, PX2F, PY2F),
+        send(Mapa, display, new(Linea, line(PX1, PY1, PX2F, PY2F))),
         tamanio_flecha(Largo, Ala),
         new(Flecha, arrow),
         send(Flecha, length, Largo),
@@ -576,10 +563,10 @@ dibujar_calle(Mapa, Origen, Destino, Peso, RutaResaltada) :-
         send(Flecha, style, closed),
         send(Linea, second_arrow, Flecha)
     ;
-        true
+        send(Mapa, display, new(Linea, line(PX1, PY1, PX2, PY2)))
     ),
 
-    (arista_en_ruta(Origen, Destino, RutaResaltada) ->
+    (arista_resaltada(Origen, Destino, RutaResaltada) ->
         Color = colour(red), Grosor = 3
     ;
         Color = colour(grey), Grosor = 1
