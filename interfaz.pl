@@ -18,13 +18,14 @@
 % ============================================================
 iniciar_interfaz :-
     new(Dialogo, dialog('GPS Visual - Operaciones sobre Grafos')),
+    send(Dialogo, gap, size(5, 2)),
 
     % Ventana separada de resultados
     crear_ventana_resultados(_ResultadoFrame, Resultado),
 
     % Mapa
     new(Mapa, picture('Mapa')),
-    send(Mapa, size, size(560, 490)),
+    send(Mapa, size, size(560, 390)),
     send(Mapa, background, colour(white)),
 
     send(Dialogo, append,
@@ -121,13 +122,6 @@ iniciar_interfaz :-
     accion_cargar_mapa('6x6_dirigido', Mapa, Resultado),
 
     send(Dialogo, open).
-
-crear_ventana_resultados(ResultadoFrame, Resultado) :-
-    new(ResultadoFrame, frame('Resultados del GPS')),
-    new(Resultado, browser('Resultados')),
-    send(Resultado, size, size(55, 22)),
-    send(ResultadoFrame, append, Resultado),
-    send(ResultadoFrame, open).
 % ============================================================
 % MAPAS DISPONIBLES
 % ============================================================
@@ -325,10 +319,9 @@ accion_todas_las_rutas(OrigenTexto, DestinoTexto, Mapa, Resultado) :-
         agregar_resultado(Resultado, 'Todas las rutas'),
         agregar_resultado(Resultado, '------------------------------'),
 
-        findnsols(40,
-                  Ruta-Peso,
-                  ruta_con_peso_interfaz(Origen, Destino, Ruta, Peso),
-                  Rutas),
+        findall(Ruta-Peso,
+        ruta_con_peso_interfaz(Origen, Destino, Ruta, Peso),
+        Rutas),
 
         length(Rutas, Cantidad),
 
@@ -339,7 +332,7 @@ accion_todas_las_rutas(OrigenTexto, DestinoTexto, Mapa, Resultado) :-
             dibujar_grafo(Mapa, [])
         ;
             format(atom(Titulo),
-                   'Se muestran hasta 40 rutas. Cantidad mostrada: ~w',
+                   'Cantidad: ~w',
                    [Cantidad]),
             agregar_resultado(Resultado, Titulo),
             agregar_resultado(Resultado, ''),
