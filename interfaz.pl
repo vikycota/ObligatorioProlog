@@ -122,6 +122,14 @@ iniciar_interfaz :-
     accion_cargar_mapa('6x6_dirigido', Mapa, Resultado),
 
     send(Dialogo, open).
+
+
+crear_ventana_resultados(ResultadoFrame, Resultado) :-
+    new(ResultadoFrame, frame('Resultados del GPS')),
+    new(Resultado, browser('Resultados')),
+    send(Resultado, size, size(55, 22)),
+    send(ResultadoFrame, append, Resultado),
+    send(ResultadoFrame, open).
 % ============================================================
 % MAPAS DISPONIBLES
 % ============================================================
