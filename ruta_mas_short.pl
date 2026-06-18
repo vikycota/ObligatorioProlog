@@ -16,6 +16,6 @@ suma_long(Lista,Suma,Total):-
     Suma1 is 1+Suma,
     suma_long(Rest,Suma1,Total).
 
-ruta_mas_short(X, Y, LargaRuta, MayorPeso) :-
+ruta_mas_short(X, Y, LargaRuta, MayorLen) :-
     findall((Peso, Ruta),calcular_ruta_con_long(X, Y, Ruta, Peso),Rutas),
-    sort(Rutas, [(MayorPeso, LargaRuta) | _]).
+    sort(Rutas, [(MayorLen, LargaRuta) | _]).

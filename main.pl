@@ -11,10 +11,7 @@
 :- consult('interfaz.pl').
 
 
-inicializar :-
-    set_prolog_flag(answer_write_options, [max_depth(0)]),
-    cargar_manzanas,
-    cargar_calles.
+
 
 inicializar_interfaz :-
     iniciar_interfaz.

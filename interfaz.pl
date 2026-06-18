@@ -77,7 +77,7 @@ iniciar_interfaz :-
 
     % Mapa
     new(Mapa, picture('Mapa')),
-    send(Mapa, size, size(1000, 1000)),
+    send(Mapa, size, size(800,500)),
     send(Mapa, background, colour(white)),
 
     send(Dialogo, append,
@@ -683,8 +683,8 @@ actualizar_limites_mapa :-
 coord_pantalla(X, Y, PX, PY) :-
     limites_actuales(MinX, MaxX, MinY, MaxY),
 
-    Ancho is 880,
-    Alto is 880,
+    Ancho is 450,
+    Alto is 450,
     MargenX is 60,
     MargenY is 60,
 
