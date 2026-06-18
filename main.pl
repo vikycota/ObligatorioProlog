@@ -7,6 +7,7 @@
 :- use_module('diametro.pl').
 :- use_module('ruta_mas_short.pl').
 :- use_module('Dijkstra.pl').
+:- use_module('ford_fulkerson.pl').
 :- consult('interfaz.pl').
 
 

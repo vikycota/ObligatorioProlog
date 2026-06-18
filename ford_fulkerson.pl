@@ -1,7 +1,8 @@
 :- module(ford_fulkerson, [
     flujo_maximo/3,
     flujo_maximo/4,
-    camino_aumentante/5
+    camino_aumentante/5,
+    camino_de_flujo/4
 ]).
 
 :- use_module('datos.pl').
@@ -50,15 +51,43 @@ ford_fulkerson(Origen, Destino, Residual, Acumulado, FlujoMaximo, ResidualFinal)
 ford_fulkerson(_, _, Residual, FlujoMaximo, FlujoMaximo, Residual).
 
 camino_aumentante(Origen, Destino, Residual, Camino, CuelloBotella) :-
-    buscar_camino(Origen, Destino, Residual, [Origen], Camino, CuelloBotella).
+    bfs_aumentante(
+        [estado(Origen, [], infinito, [Origen])],
+        Destino,
+        Residual,
+        CaminoInvertido,
+        CuelloBotella
+    ),
+    reverse(CaminoInvertido, Camino).
 
-buscar_camino(Destino, Destino, _, _, [], infinito).
-buscar_camino(Actual, Destino, Residual, Visitados, [Actual-Siguiente|Camino], CuelloBotella) :-
-    member(r(Actual, Siguiente, Capacidad), Residual),
-    Capacidad > 0,
-    \+ member(Siguiente, Visitados),
-    buscar_camino(Siguiente, Destino, Residual, [Siguiente|Visitados], Camino, CuelloResto),
-    minimo_capacidad(Capacidad, CuelloResto, CuelloBotella).
+
+bfs_aumentante([estado(Destino, Camino, Cuello, _) | _],
+               Destino,
+               _,
+               Camino,
+               Cuello) :-
+    !.
+
+bfs_aumentante([estado(Actual, CaminoActual, CuelloActual, Visitados) | Cola],
+               Destino,
+               Residual,
+               Camino,
+               Cuello) :-
+    findall(
+        estado(Siguiente,
+               [Actual-Siguiente | CaminoActual],
+               NuevoCuello,
+               [Siguiente | Visitados]),
+        (
+            member(r(Actual, Siguiente, Capacidad), Residual),
+            Capacidad > 0,
+            \+ member(Siguiente, Visitados),
+            minimo_capacidad(Capacidad, CuelloActual, NuevoCuello)
+        ),
+        NuevosEstados
+    ),
+    append(Cola, NuevosEstados, NuevaCola),
+    bfs_aumentante(NuevaCola, Destino, Residual, Camino, Cuello).
 
 minimo_capacidad(Capacidad, infinito, Capacidad) :- !.
 minimo_capacidad(Capacidad, OtraCapacidad, Minimo) :-
@@ -98,3 +127,21 @@ capacidad_residual(U, V, [r(U,V,C)|_], C) :- !.
 capacidad_residual(U, V, [_|Resto], C) :-
     capacidad_residual(U, V, Resto, C).
 capacidad_residual(_, _, [], 0).
+
+camino_de_flujo(Origen, Destino, FlujosPorArco, Ruta) :-
+    buscar_camino_flujo(Origen, Destino, FlujosPorArco, [Origen], RutaInvertida),
+    reverse(RutaInvertida, Ruta).
+
+
+buscar_camino_flujo(Destino, Destino, _, Ruta, Ruta) :-
+    !.
+
+buscar_camino_flujo(Actual, Destino, FlujosPorArco, Visitados, Ruta) :-
+    member(flujo(Actual, Siguiente, _, Flujo), FlujosPorArco),
+    Flujo > 0,
+    \+ member(Siguiente, Visitados),
+    buscar_camino_flujo(Siguiente,
+                        Destino,
+                        FlujosPorArco,
+                        [Siguiente | Visitados],
+                        Ruta).

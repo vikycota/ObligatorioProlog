@@ -75,6 +75,7 @@ iniciar_interfaz :-
                         accion_ford_fulkerson,
                         OrigenItem?selection,
                         DestinoItem?selection,
+                        Mapa,
                         Resultado)),
          right),
 
@@ -269,27 +270,39 @@ accion_dijkstra(OrigenTexto, DestinoTexto, Mapa, Resultado) :-
     ).
 
 
-accion_ford_fulkerson(OrigenTexto, DestinoTexto, Resultado) :-
+accion_ford_fulkerson(OrigenTexto, DestinoTexto, Mapa, Resultado) :-
     leer_nodo(OrigenTexto, Origen),
     leer_nodo(DestinoTexto, Destino),
 
     limpiar_resultado(Resultado),
-    agregar_resultado(Resultado, 'Ford-Fulkerson'),
+    agregar_resultado(Resultado, 'Ford-Fulkerson / Edmonds-Karp'),
     agregar_resultado(Resultado, '------------------------------'),
 
     (
-        flujo_maximo(Origen, Destino, Flujo)
+        flujo_maximo(Origen, Destino, Flujo, FlujosPorArco)
     ->
         format(atom(Mensaje),
                'Flujo maximo desde ~w hasta ~w = ~w.',
-               [Origen, Destino, Flujo])
+               [Origen, Destino, Flujo]),
+        agregar_resultado(Resultado, Mensaje),
+
+        (
+            camino_de_flujo(Origen, Destino, FlujosPorArco, Ruta)
+        ->
+            formato_camino(Ruta, RutaTexto),
+            agregar_resultado(Resultado, RutaTexto),
+            dibujar_grafo(Mapa, Ruta)
+        ;
+            dibujar_grafo(Mapa, []),
+            agregar_resultado(Resultado, 'No hay camino con flujo positivo para resaltar.')
+        )
     ;
+        dibujar_grafo(Mapa, []),
         format(atom(Mensaje),
                'No se pudo calcular flujo maximo entre ~w y ~w.',
-               [Origen, Destino])
-    ),
-
-    agregar_resultado(Resultado, Mensaje).
+               [Origen, Destino]),
+        agregar_resultado(Resultado, Mensaje)
+    ).
 
 
 accion_conectividad(OrigenTexto, DestinoTexto, Resultado) :-
