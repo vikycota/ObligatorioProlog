@@ -14,6 +14,58 @@
 
 
 % ============================================================
+% COLORES Y CONFIGURACION VISUAL
+% ============================================================
+
+mapa_dirigido :-
+    mapa_actual(mapa_6_dirigido).
+mapa_dirigido :-
+    mapa_actual(mapa_26_dirigido).
+
+paleta_colores([
+    colour(red),
+    colour(blue),
+    colour(green),
+    colour(orange),
+    colour(purple),
+    colour(brown),
+    colour(magenta),
+    colour(cyan)
+]).
+
+color_por_indice(Idx, Color) :-
+    paleta_colores(Lista),
+    length(Lista, N),
+    Idx2 is Idx mod N,
+    nth0(Idx2, Lista, Color).
+
+nombre_color(colour(red),     'ROJO').
+nombre_color(colour(blue),    'AZUL').
+nombre_color(colour(green),   'VERDE').
+nombre_color(colour(orange),  'NARANJA').
+nombre_color(colour(purple),  'VIOLETA').
+nombre_color(colour(brown),   'MARRON').
+nombre_color(colour(magenta), 'MAGENTA').
+nombre_color(colour(cyan),    'CIAN').
+
+tamanio_flecha(Largo, Ala) :-
+    (mapa_grande -> Largo = 6, Ala = 4 ; Largo = 18, Ala = 12).
+
+% Helper: acorta el endpoint hasta el borde del nodo destino
+ajustar_endpoint(PX1, PY1, PX2, PY2, PX2F, PY2F) :-
+    tamanio_nodo(_, Mitad, _, _),
+    DX is PX2 - PX1,
+    DY is PY2 - PY1,
+    Dist is sqrt(DX*DX + DY*DY),
+    (Dist > 0 ->
+        PX2F is round(PX2 - (DX / Dist) * Mitad),
+        PY2F is round(PY2 - (DY / Dist) * Mitad)
+    ;
+        PX2F = PX2, PY2F = PY2
+    ).
+
+
+% ============================================================
 % INTERFAZ PRINCIPAL
 % ============================================================
 iniciar_interfaz :-
@@ -25,7 +77,7 @@ iniciar_interfaz :-
 
     % Mapa
     new(Mapa, picture('Mapa')),
-    send(Mapa, size, size(560, 390)),
+    send(Mapa, size, size(1000, 1000)),
     send(Mapa, background, colour(white)),
 
     send(Dialogo, append,
@@ -37,9 +89,9 @@ iniciar_interfaz :-
 
     send(Dialogo, append, new(MapaItem, menu(mapa, cycle)), below),
     send_list(MapaItem, append,
-              ['26x26_dirigido',
-               '6x6_dirigido',
-               '6x6_no_dirigido']),
+          ['26x26_dirigido',
+           '6x6_dirigido',
+           '4x4_no_dirigido']),
     send(MapaItem, selection, '6x6_dirigido'),
 
     send(Dialogo, append, new(OrigenItem, text_item(origen)), right),
@@ -149,15 +201,14 @@ mapa_a_archivos_string("6x6_dirigido",
                        'Manzanas_6x6.csv',
                        'Calles_6x6.csv').
 
-mapa_a_archivos_string("6x6_no_dirigido",
-                       mapa_6_no_dirigido,
-                       'Manzanas_6x6.csv',
-                       'NoD_Calles_6x6.csv').
+mapa_a_archivos_string("4x4_no_dirigido",
+                       mapa_4_no_dirigido,
+                       'Manzanas_4x4.csv',
+                       'NoD_Calles_4x4.csv').
 
 
 mapa_permite_todo(mapa_6_dirigido).
-mapa_permite_todo(mapa_6_no_dirigido).
-
+mapa_permite_todo(mapa_4_no_dirigido).
 
 mapa_grande :-
     mapa_actual(mapa_26_dirigido).
@@ -328,6 +379,86 @@ accion_conectividad(OrigenTexto, DestinoTexto, Resultado) :-
     agregar_resultado(Resultado, Mensaje).
 
 
+asignar_colores(Rutas, RutasColoreadas) :-
+    asignar_colores(Rutas, 0, RutasColoreadas).
+
+asignar_colores([], _, []).
+asignar_colores([Ruta-Peso | Resto], Idx, [r(Ruta, Peso, Color) | Resto2]) :-
+    color_por_indice(Idx, Color),
+    Idx1 is Idx + 1,
+    asignar_colores(Resto, Idx1, Resto2).
+
+dibujar_grafo_multicolor(Mapa, RutasColoreadas) :-
+    send(Mapa, clear),
+    forall(
+        datos:calle(_, Origen, Destino, Peso),
+        ignore(dibujar_calle_multicolor(Mapa, Origen, Destino, Peso, RutasColoreadas))
+    ),
+    forall(
+        datos:manzana(Nodo, X, Y),
+        ignore(dibujar_manzana(Mapa, Nodo, X, Y, []))
+    ).
+
+
+dibujar_calle_multicolor(Mapa, Origen, Destino, Peso, RutasColoreadas) :-
+    datos:manzana(Origen, X1, Y1),
+    datos:manzana(Destino, X2, Y2),
+    coord_pantalla(X1, Y1, PX1, PY1),
+    coord_pantalla(X2, Y2, PX2, PY2),
+
+    ajustar_endpoint(PX1, PY1, PX2, PY2, PX2F, PY2F),
+    send(Mapa, display, new(Linea, line(PX1, PY1, PX2F, PY2F))),
+
+    (mapa_dirigido ->
+        tamanio_flecha(Largo, Ala),
+        new(Flecha, arrow),
+        send(Flecha, length, Largo),
+        send(Flecha, wing, Ala),
+        send(Flecha, style, closed),
+        send(Linea, second_arrow, Flecha)
+    ;
+        true
+    ),
+
+    (color_arista_multicolor(Origen, Destino, RutasColoreadas, Color) ->
+        send(Linea, colour, Color),
+        send(Linea, pen, 3),
+        (mapa_dirigido ->
+            send(Flecha, colour, Color)
+        ; true)
+    ;
+        send(Linea, colour, colour(grey)),
+        send(Linea, pen, 1),
+        (mapa_dirigido ->
+            send(Flecha, colour, colour(grey))
+        ; true)
+    ),
+
+    (mostrar_pesos ->
+        MX is (PX1 + PX2) // 2,
+        MY is (PY1 + PY2) // 2,
+        term_string(Peso, PesoTexto),
+        send(Mapa, display, new(TextoPeso, text(PesoTexto)), point(MX, MY)),
+        send(TextoPeso, background, colour(white)),
+        send(TextoPeso, font, font(helvetica, normal, 9))
+    ; true).
+
+
+color_arista_multicolor(Origen, Destino, [r(Ruta, _, Color) | _], Color) :-
+    arista_en_ruta(Origen, Destino, Ruta), !.
+color_arista_multicolor(Origen, Destino, [_ | Resto], Color) :-
+    color_arista_multicolor(Origen, Destino, Resto, Color).
+
+
+mostrar_rutas_coloreadas(_, [], _).
+mostrar_rutas_coloreadas(Resultado, [r(Ruta, Peso, Color) | Resto], N) :-
+    nombre_color(Color, NomColor),
+    formato_camino(Ruta, RutaTexto),
+    format(atom(Line), 'Ruta ~w [~w]: ~w | ~w min', [N, NomColor, RutaTexto, Peso]),
+    agregar_resultado(Resultado, Line),
+    N1 is N + 1,
+    mostrar_rutas_coloreadas(Resultado, Resto, N1).
+
 accion_todas_las_rutas(OrigenTexto, DestinoTexto, Mapa, Resultado) :-
     (
         mapa_actual(IdMapa),
@@ -341,32 +472,26 @@ accion_todas_las_rutas(OrigenTexto, DestinoTexto, Mapa, Resultado) :-
         agregar_resultado(Resultado, '------------------------------'),
 
         findall(Ruta-Peso,
-        ruta_con_peso_interfaz(Origen, Destino, Ruta, Peso),
-        Rutas),
+                ruta_con_peso_interfaz(Origen, Destino, Ruta, Peso),
+                Rutas),
 
         length(Rutas, Cantidad),
 
-        (
-            Cantidad =:= 0
-        ->
+        (Cantidad =:= 0 ->
             agregar_resultado(Resultado, 'No se encontraron rutas.'),
             dibujar_grafo(Mapa, [])
         ;
-            format(atom(Titulo),
-                   'Cantidad: ~w',
-                   [Cantidad]),
+            format(atom(Titulo), 'Cantidad: ~w', [Cantidad]),
             agregar_resultado(Resultado, Titulo),
             agregar_resultado(Resultado, ''),
-            mostrar_rutas_en_panel(Resultado, Rutas),
-
-            % Resalta la primera ruta encontrada.
-            Rutas = [PrimeraRuta-_ | _],
-            dibujar_grafo(Mapa, PrimeraRuta)
+            asignar_colores(Rutas, RutasColoreadas),
+            mostrar_rutas_coloreadas(Resultado, RutasColoreadas, 1),
+            dibujar_grafo_multicolor(Mapa, RutasColoreadas)
         )
     ;
         limpiar_resultado(Resultado),
-        agregar_resultado(Resultado, 'Operacion no habilitada para el mapa 26x26.'),
-        agregar_resultado(Resultado, 'Use un mapa 6x6 para listar todas las rutas.')
+        agregar_resultado(Resultado, 'Operacion no disponible para el mapa 26x26.'),
+        agregar_resultado(Resultado, 'Use un mapa 6x6 o 4x4.')
     ).
 
 
@@ -390,8 +515,8 @@ accion_diametro(Resultado) :-
         ),
         agregar_resultado(Resultado, Mensaje)
     ;
-        agregar_resultado(Resultado, 'Diametro no habilitado para el mapa 26x26.'),
-        agregar_resultado(Resultado, 'Use un mapa 6x6.')
+        agregar_resultado(Resultado, 'Diametro no disponible para el mapa 26x26.'),
+        agregar_resultado(Resultado, 'Use un mapa 6x6 o 4x4.')
     ).
 
 
@@ -424,64 +549,73 @@ suma_pesos_interfaz([Primero, Segundo | Resto], Suma, Total) :-
 
 dibujar_grafo(Mapa, RutaResaltada) :-
     send(Mapa, clear),
-
     forall(
         datos:calle(_, Origen, Destino, Peso),
-        dibujar_calle(Mapa, Origen, Destino, Peso, RutaResaltada)
+        ignore(dibujar_calle(Mapa, Origen, Destino, Peso, RutaResaltada))
     ),
-
     forall(
         datos:manzana(Nodo, X, Y),
-        dibujar_manzana(Mapa, Nodo, X, Y, RutaResaltada)
+        ignore(dibujar_manzana(Mapa, Nodo, X, Y, RutaResaltada))
     ).
 
 
 dibujar_calle(Mapa, Origen, Destino, Peso, RutaResaltada) :-
     datos:manzana(Origen, X1, Y1),
     datos:manzana(Destino, X2, Y2),
-
     coord_pantalla(X1, Y1, PX1, PY1),
     coord_pantalla(X2, Y2, PX2, PY2),
 
-    send(Mapa, display, new(Linea, line(PX1, PY1, PX2, PY2))),
+    ajustar_endpoint(PX1, PY1, PX2, PY2, PX2F, PY2F),
+    send(Mapa, display, new(Linea, line(PX1, PY1, PX2F, PY2F))),
 
-    (
-        arista_en_ruta(Origen, Destino, RutaResaltada)
-    ->
-        send(Linea, colour, colour(red)),
-        send(Linea, pen, 4),
-        ColorPeso = red
+    (mapa_dirigido ->
+        tamanio_flecha(Largo, Ala),
+        new(Flecha, arrow),
+        send(Flecha, length, Largo),
+        send(Flecha, wing, Ala),
+        send(Flecha, style, closed),
+        send(Linea, second_arrow, Flecha)
     ;
-        send(Linea, colour, colour(grey)),
-        send(Linea, pen, 1),
-        ColorPeso = black
+        true
     ),
 
-    (
-        mostrar_pesos
-    ->
+    (arista_en_ruta(Origen, Destino, RutaResaltada) ->
+        Color = colour(red), Grosor = 3
+    ;
+        Color = colour(grey), Grosor = 1
+    ),
+
+    send(Linea, colour, Color),
+    send(Linea, pen, Grosor),
+
+    (mapa_dirigido ->
+        send(Flecha, colour, Color)
+    ;
+        true
+    ),
+
+    (mostrar_pesos ->
         MX is (PX1 + PX2) // 2,
         MY is (PY1 + PY2) // 2,
         term_string(Peso, PesoTexto),
         send(Mapa, display, new(TextoPeso, text(PesoTexto)), point(MX, MY)),
-        send(TextoPeso, colour, colour(ColorPeso))
+        send(TextoPeso, colour, Color),
+        send(TextoPeso, background, colour(white)),
+        send(TextoPeso, font, font(helvetica, normal, 9))
     ;
         true
     ).
 
+
 dibujar_manzana(Mapa, Nodo, X, Y, RutaResaltada) :-
     coord_pantalla(X, Y, PX, PY),
-
     tamanio_nodo(Tam, Mitad, PenNormal, PenRuta),
-
     XCirculo is PX - Mitad,
     YCirculo is PY - Mitad,
 
     send(Mapa, display, new(Circulo, ellipse(Tam, Tam)), point(XCirculo, YCirculo)),
 
-    (
-        member(Nodo, RutaResaltada)
-    ->
+    (member(Nodo, RutaResaltada) ->
         send(Circulo, colour, colour(red)),
         send(Circulo, pen, PenRuta)
     ;
@@ -489,14 +623,13 @@ dibujar_manzana(Mapa, Nodo, X, Y, RutaResaltada) :-
         send(Circulo, pen, PenNormal)
     ),
 
-    (
-        mostrar_etiquetas_nodos
-    ->
+    (mostrar_etiquetas_nodos ->
         term_string(Nodo, Texto),
         XTexto is PX - 9,
         YTexto is PY + 8,
         send(Mapa, display, new(TextoNodo, text(Texto)), point(XTexto, YTexto)),
-        send(TextoNodo, colour, colour(black))
+        send(TextoNodo, colour, colour(black)),
+        send(TextoNodo, font, font(helvetica, bold, 10))
     ;
         true
     ).
@@ -550,25 +683,21 @@ actualizar_limites_mapa :-
 coord_pantalla(X, Y, PX, PY) :-
     limites_actuales(MinX, MaxX, MinY, MaxY),
 
-    Ancho is 430,
-    Alto is 280,
-    MargenX is 35,
-    MargenY is 30,
+    Ancho is 880,
+    Alto is 880,
+    MargenX is 60,
+    MargenY is 60,
 
     DX is MaxX - MinX,
     DY is MaxY - MinY,
 
-    (
-        DX =:= 0
-    ->
+    (DX =:= 0 ->
         PX is MargenX + Ancho // 2
     ;
         PX is MargenX + round(((X - MinX) * Ancho) / DX)
     ),
 
-    (
-        DY =:= 0
-    ->
+    (DY =:= 0 ->
         PY is MargenY + Alto // 2
     ;
         PY is MargenY + round(((Y - MinY) * Alto) / DY)
